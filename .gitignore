@@ -1,0 +1,30 @@
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/UserSettings/
+/Build/
+/Builds/
+/Assets/Samples/
+/ProjectSettings/XRPackageSettings.asset
+/*.csproj
+/*.sln
+*.tgz
+com.xreal.xr*.tar.gz
+/Assets/TextMesh Pro/
+*.apk
+*.aab
+*.keystore
+.env*
+.DS_Store
+
+# Local legacy prototypes and design handoff bundles.
+/Assets/
+/Packages/
+/ProjectSettings/
+/Docs/
+/other-assets/
+/web/references/
+
+# Share names and example defaults only, never real environment files.
+!/web/.env.example

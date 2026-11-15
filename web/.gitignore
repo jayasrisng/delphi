@@ -1,0 +1,9 @@
+node_modules/
+dist/
+public/wasm/
+.env
+.data/
+
+!.env.example
+
+.vercel/
