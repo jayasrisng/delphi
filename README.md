@@ -71,8 +71,8 @@ You can also upload an MP4, MOV, or WebM with an audio track, including an expor
 Install **Node.js 22.13+**, **FFmpeg**, and **FFprobe**.
 
 ```sh
-git clone https://github.com/jayasrisng/spatial-sonic.git
-cd spatial-sonic/web
+git clone https://github.com/jayasrisng/delphi.git
+cd delphi/web
 npm ci
 npm run dev -- --port 4177
 ```
