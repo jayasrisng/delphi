@@ -160,8 +160,8 @@ export function createApi(env) {
       if (!home) {
         if (url.searchParams.get('view') !== 'feed') return { performances, nextOffset:rows.length > limit ? offset+limit : null }
         return { performances:await Promise.all(performances.map(async item => {
-          const [social, views] = await Promise.all([db.likes(item.slug,identity),db.views(item.slug)])
-          return { ...item,...social,views }
+          const [social, views, commentCount] = await Promise.all([db.likes(item.slug,identity),db.views(item.slug),db.commentCount(item.slug)])
+          return { ...item,...social,views,commentCount }
         })),nextOffset:rows.length > limit ? offset+limit : null }
       }
 
@@ -179,7 +179,9 @@ export function createApi(env) {
         seen.add(item.slug)
         mixed.push(item)
       }
-      return { performances:mixed,nextOffset:null }
+      return { performances:await Promise.all(mixed.map(async item => ({
+        ...item,commentCount:await db.commentCount(item.slug)
+      }))),nextOffset:null }
     }
     if (method === 'POST' && path === '/publish/start') {
       rate(req,'upload',12,3600000)
@@ -235,8 +237,10 @@ export function createApi(env) {
       return
     }
     if (!action && method === 'GET') {
-      const [likes,comments] = await Promise.all([db.likes(slug,identity || '00000000-0000-0000-0000-000000000000'), db.comments(slug)])
-      return {...item,...likes,comments:comments.map(comment => commentView(comment,identity))}
+      const [likes,comments,commentCount] = await Promise.all([
+        db.likes(slug,identity),db.comments(slug),db.commentCount(slug)
+      ])
+      return {...item,...likes,commentCount,comments:comments.map(comment => commentView(comment,identity))}
     }
     if (action === 'view' && method === 'POST') {
       rate(req,'view',120,60000)

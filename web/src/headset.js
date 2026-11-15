@@ -11,6 +11,7 @@ export function connectHeadset(stage, button, callbacks) {
   const inverse = new Matrix4()
   const origin = new Vector3()
   const direction = new Vector3()
+  const hit = new Vector3()
   const rotation = new Quaternion()
   const inputs = new Map()
   let anchored = false
@@ -35,13 +36,13 @@ export function connectHeadset(stage, button, callbacks) {
       if (state.closed) state.blocked = true
       return
     }
-    origin.addScaledVector(direction,distance)
+    hit.copy(origin).addScaledVector(direction,distance)
     const height = 10*(20-STAR_PLANE)/20
-    const x = .5+origin.x/(height*stage.aspect)
-    const y = .5-origin.y/height
+    const x = .5+hit.x/(height*stage.aspect)
+    const y = .5-hit.y/height
     state.cursor.visible = x >= 0 && x <= 1 && y >= 0 && y <= 1
-    state.cursor.position.set(origin.x,origin.y,STAR_PLANE+.08)
-    if (!state.blocked) callbacks.pointer(source,x,y,state.closed,now)
+    state.cursor.position.set(hit.x,hit.y,STAR_PLANE+.08)
+    if (!state.blocked) callbacks.pointer(source,x,y,state.closed,now,origin,direction)
   }
 
   function input(source) {

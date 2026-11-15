@@ -21,6 +21,7 @@ export function localDatabase(path) {
       : db.prepare('delete from likes where slug=? and browser=?').run(slug,browser),
     views: slug => db.prepare('select count(*) as total from performance_views where slug=?').get(slug).total,
     addView: (slug,browser) => db.prepare('insert or ignore into performance_views values (?,?)').run(slug,browser),
+    commentCount: slug => db.prepare('select count(*) as total from comments where slug=?').get(slug).total,
     comments: slug => db.prepare('select * from (select * from comments where slug=? order by created_at desc limit 100) order by created_at').all(slug),
     comment: item => db.prepare('insert into comments (id,slug,browser,author,body) values (?,?,?,?,?)').run(item.id,item.slug,item.browser,item.author,item.body),
     remove: (slug,id,browser) => browser ? db.prepare('delete from comments where slug=? and id=? and browser=?').run(slug,id,browser)
@@ -53,6 +54,10 @@ export function cloudDatabase(request) {
       return Number(response.headers.get('content-range')?.split('/').at(-1) || 0)
     },
     addView: (slug,browser) => rest('performance_views',write('POST',{slug,browser},{Prefer:'resolution=ignore-duplicates'})),
+    commentCount: async slug => {
+      const response = await rest(bySlug('comments',slug,{select:'id',limit:1}),{raw:true,headers:{Prefer:'count=exact'}})
+      return Number(response.headers.get('content-range')?.split('/').at(-1) || 0)
+    },
     comments: async slug => (await rest(bySlug('comments',slug,{order:'created_at.desc',limit:'100'}))).reverse(),
     comment: item => rest('comments',write('POST',item)),
     remove: (slug,id,browser) => rest(bySlug('comments',slug,{id:'eq.'+id,...(browser ? {browser:'eq.'+browser} : {})}),write('DELETE'))

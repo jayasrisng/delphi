@@ -1,5 +1,7 @@
 # Dolphin duet integration for Spectacles 2024
 
+The [current handoff and setup guide](Delphi_Duet_Handoff/INTEGRATION.md) includes the four Satie banks, Lens scripts, visual assets, and the native capture workflow.
+
 Target Lens Studio **5.15.4** and validate on the glasses. The browser Studio and Lens own their respective tracking, visuals, audio scheduling, and recording. Share the musical decisions through the HTTPS endpoint and keep the same offline rules on both clients.
 
 ## Start with a single duet
@@ -33,7 +35,7 @@ Example request:
 }
 ```
 
-Example response: `{"action":"echo","star":2}`. A rest response is `{"action":"rest"}`. Valid actions are `echo`, `harmonize`, `beat`, and `rest`. Star IDs are stable integers 0–3 and zone indexes correspond to lyre, drum, flute, harp. Pitch is a pentatonic scale index 0–14 using semitone offsets [0,2,4,7,9] per octave. `ms` is an inter-note interval. `previous` is optional. Candidate pitches describe each star's current state. A reply can use any candidate, including a star the player has never touched.
+Example response: `{"action":"echo","star":2}`. A rest response is `{"action":"rest"}`. Valid actions are `echo`, `harmonize`, `beat`, and `rest`. Star IDs are stable integers 0–3 and zone indexes correspond to Moon Harp, Soft Gong, Bellaton, and Water Glass. Pitch is a pentatonic scale index 0–14 using semitone offsets [0,2,4,7,9] per octave. `ms` is an inter-note interval. `previous` is optional. Candidate pitches describe each star's current state. A reply can use any candidate, including a star the player has never touched.
 
 The browser's [shared duet rules](../web/src/duet.js) are plain JavaScript with no browser or Three.js dependencies. Port these small functions into the 5.15.4 Lens's script module for candidate selection, offline choice, and note expansion. `replyNotes` returns a target ID, zone, pitch step, gain, and beat offset per note. Translate beat offsets into local audio scheduling. Tune physical swimming distances and the animation to the Lens scene itself.
 
@@ -41,7 +43,7 @@ Send at most one pending request per session. Use a short deadline, fall back to
 
 ## Device acceptance
 
-Play two or three notes on lyre and pause with that star held. Confirm the dolphin approaches a different star, the star lights up with its audible reply, and you can keep playing during the reply. Grab the dolphin's chosen star during a subsequent approach and confirm it yields. Repeat without networking, then record a short duet and check the exported clip for both voices.
+Play two or three notes on Moon Harp and pause with that star held. Confirm the dolphin approaches a different star, the star lights up with its audible reply, and you can keep playing during the reply. Grab the dolphin's chosen star during a subsequent approach and confirm it yields. Repeat without networking, then record a short duet and check the exported clip for both voices.
 
 ## Direct player cues
 

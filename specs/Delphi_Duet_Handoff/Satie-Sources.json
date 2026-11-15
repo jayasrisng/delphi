@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Moon Harp",
+    "source": "Satie library",
+    "clip": "community/harp-a2",
+    "license": "CC0",
+    "measuredSourceHz": 109.91,
+    "loopSeconds": 26.23
+  },
+  {
+    "name": "Soft Gong",
+    "source": "new Satie take",
+    "sampleId": "573caf9e-1d0e-48c0-9b36-409d86e1fc5e",
+    "costCents": 3,
+    "measuredSourceHz": 294.88,
+    "loopSeconds": 6.94
+  },
+  {
+    "name": "Glass Bells",
+    "source": "Satie library",
+    "clip": "community/thin-glass-filament-singing",
+    "license": "Generated (ElevenLabs, via Satie)",
+    "measuredSourceHz": 220.96,
+    "loopSeconds": 35.36
+  },
+  {
+    "name": "Water Glass",
+    "source": "new Satie take",
+    "sampleId": "34b4913b-30c9-4947-a05a-fc982fa1eb98",
+    "costCents": 3,
+    "measuredSourceHz": 564.0,
+    "loopSeconds": 3.54
+  }
+]

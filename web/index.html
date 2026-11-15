@@ -10,7 +10,6 @@
 <body>
 <div class="sky-meteors" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <header class="top"><div class="top-inner">
-<a class="mark" href="/" aria-label="Delphi Studio"><img src="/brand/delphi-seal.svg" width="68" height="68" alt=""></a>
 <nav class="page-nav" aria-label="Main"><a href="/" data-page="studio">Studio</a><a href="/gallery" data-page="gallery">Gallery</a><a href="/upload" data-page="upload">Upload</a></nav>
 <button class="bare top-note" id="site-code" aria-label="Share the studio by QR code">Share <span aria-hidden="true">↗</span></button>
 </div></header>
@@ -18,24 +17,53 @@
 <section id="studio" hidden>
 <div class="instrument">
 <div class="stage" id="scene">
-<div class="studio-intro" id="studio-intro"><h1>Play the stars.</h1><p>Make music with Delphi.</p></div>
-<div class="stage-top"><span><i></i> <span id="status">Studio ready</span></span><div class="stage-tools"><button class="bare" id="enter-vr" hidden>Enter VR</button><button id="clear" class="bare">Reset</button><button id="expand-studio" class="bare" aria-pressed="false">Hide controls</button></div></div>
-<div class="stage-start" id="start"><button class="primary" id="camera">Enable camera & sound</button><button class="bare" id="mouse">Play with mouse</button></div>
-<div class="stage-caption" id="partner" aria-live="polite">Delphi is listening.</div>
+<div class="studio-intro"><img src="/brand/delphi-seal.svg" alt="Delphi"></div>
+<div id="delphi-chatter" hidden aria-hidden="true"></div>
+<div id="practice-marker" hidden aria-hidden="true">▼</div>
+<div class="stage-top"><span id="status" role="status"></span><div class="stage-tools">
+<button class="bare" id="enter-vr" hidden>Enter VR</button>
+<details class="studio-settings"><summary>Settings</summary><div>
+<button class="bare" id="camera-toggle" hidden>Camera off</button>
+<button class="bare" id="sound" aria-pressed="false">Sound on</button>
+<button class="bare" id="clear">Reset stars</button>
+<button class="bare" id="show-onboarding">How to play</button>
+</div></details>
+</div></div>
+<aside id="star-practice" hidden aria-label="Star practice">
+<p id="star-practice-step" role="status"></p>
+<button type="button" id="star-practice-type" class="bare" hidden>Type the cue</button>
+<button type="button" id="star-practice-next" class="bare">Next</button>
+<button type="button" id="star-practice-skip" class="bare">Skip practice</button>
+</aside>
+<div class="stage-start" id="start"><button class="primary" id="camera">Play with camera &amp; voice</button><button class="bare" id="mouse">Play with mouse</button><button type="button" id="replay-onboarding" class="bare">How to play</button></div>
+</div>
+<div id="cue-bubble" hidden>
+<button type="button" id="pop-cue">
+  <span id="cue-bubble-title">Moon Harp</span>
+  <span id="cue-bubble-action">Pop to play</span>
+</button>
+<span id="cue-bubble-command">“Hey Delphi, play Moon Harp.”</span>
+<div class="cue-burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 </div>
 <div class="studio-dock">
-<div class="zones" aria-label="Instrument zones"><div>Lyre</div><div>Drum</div><div>Flute</div><div>Harp</div></div>
-<div class="transport"><p id="hint">Pinch or drag a star. Move it up to raise the pitch.</p><div><button class="bare" id="camera-toggle" hidden>Camera off</button><button class="bare" id="sound" aria-pressed="false">Sound on</button><button id="record" disabled><span class="record-dot"></span> <span id="record-label">Record 30 seconds</span></button></div></div>
+<output id="delphi-feedback" class="stage-caption" aria-live="polite"></output>
+<div class="transport">
+<a class="chip" href="/">Home</a>
+<button id="record" disabled>Record</button>
+<button type="button" id="voice-cue" aria-pressed="false">Cue Delphi</button>
+<button type="button" id="stop-delphi" hidden>Stop Delphi</button>
+</div>
 <form id="delphi-command" class="delphi-command" hidden>
-<label for="delphi-request">Ask Delphi</label>
-<input id="delphi-request" type="text" maxlength="80" placeholder="Play the drums" autocomplete="off">
-<button type="submit">Ask</button><button type="button" id="drum-cue">Play drums</button>
-<button type="button" id="voice-cue" hidden>Speak a cue</button>
-<output id="delphi-feedback" aria-live="polite"></output>
+<input id="delphi-request" aria-label="Cue for Delphi" type="text" maxlength="240" placeholder="Play Water Glass" autocomplete="off">
+<button type="submit">Send</button>
 </form>
-<p class="studio-foot">Camera stays on this device <span>·</span> Microphone only when you choose Speak a cue</p>
 </div>
 </div>
+</section>
+<section id="desktop-only" hidden aria-labelledby="desktop-title">
+  <h1 id="desktop-title">Boo! Desktop only.</h1>
+  <p>I’m a dolphin. I need a large screen, please!</p>
+  <a class="chip" href="/gallery">Watch duets</a>
 </section>
 <section id="gallery" hidden aria-label="Gallery">
 <div id="cards" class="cards" tabindex="0" aria-label="Performance videos"></div>
@@ -44,9 +72,49 @@
 <button type="button" data-view="feed" aria-pressed="false">Feed</button>
 </nav>
 </section>
-<section id="upload" hidden><div class="intro"><h1>Share a performance.</h1><p>Import your clip in the Spectacles app, then choose it from your phone.</p></div><div class="upload-box"><div class="sky-meteors in-panel" aria-hidden="true"><i></i><i></i></div><h2>Choose a video</h2><p>MP4, MOV or WebM · up to 50 MB · up to 3 minutes</p><label class="primary file">Choose clip<input id="clip" type="file" accept="video/mp4,video/quicktime,video/webm,.mov"></label><p id="upload-status" role="status">You’ll review the footage before it becomes public.</p></div></section>
+<section id="upload" hidden aria-label="Upload a performance">
+<div class="upload-box">
+<div class="upload-starlight" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<label class="primary file">Choose clip<input id="clip" type="file" aria-label="Choose clip" accept="video/mp4,video/quicktime,video/webm,.mov"></label>
+<p id="upload-status" role="status">Choose a video from your device to preview before publishing.</p>
+</div>
+</section>
 <section id="performance" hidden></section>
 </main>
+<dialog id="studio-onboarding" aria-labelledby="onboarding-title">
+<div class="onboarding-top">
+<span id="onboarding-progress"></span>
+<button type="button" class="bare" id="onboarding-skip">Skip</button>
+</div>
+<div id="onboarding-motion" class="onboarding-motion" aria-hidden="true">
+<span class="onboarding-star">✦</span><span id="onboarding-gesture"></span>
+<img id="onboarding-dolphin" src="/brand/delphi-portrait.png" alt="" width="560" height="210">
+<div class="onboarding-orbit"><i></i><i></i><i></i><i></i></div>
+<div class="onboarding-scale"><span>Moon Harp</span><span>Soft Gong</span><span>Bellaton</span><span>Water Glass</span></div>
+</div>
+<div class="onboarding-copy" aria-live="polite" aria-atomic="true">
+<h2 id="onboarding-title"></h2>
+</div>
+<div class="onboarding-actions" id="onboarding-answer">
+<button type="button" class="bare">Yes</button>
+<button type="button" class="bare">No</button>
+</div>
+<div class="onboarding-actions" id="onboarding-controls" hidden>
+<button type="button" class="bare" id="onboarding-practice">Try it live</button>
+<button type="button" class="bare" id="onboarding-next">Next</button>
+<a href="/gallery" id="onboarding-gallery" hidden>See examples</a>
+</div>
+</dialog>
+<dialog id="record-intro" aria-labelledby="record-title">
+<h2 id="record-title">Record a take</h2>
+<div class="take-instructions">
+<p>30 seconds. Stars and music only.</p>
+</div>
+<form method="dialog" class="actions">
+<button value="start" class="primary">Start</button>
+<button value="cancel" class="bare">Cancel</button>
+</form>
+</dialog>
 <dialog id="review"><div id="review-inner"></div></dialog>
 <dialog id="site-share" aria-labelledby="site-share-title"><div class="qr-modal"><h2 id="site-share-title">Share the studio</h2><div id="site-constellation"></div><a id="site-share-url" href="https://delphi.jayasrisng.com">delphi.jayasrisng.com</a><form method="dialog"><button>Close</button></form></div></dialog>
 <script type="module" src="/src/main.js"></script>

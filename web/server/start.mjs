@@ -6,11 +6,11 @@ import { createApi } from './api.mjs'
 
 const api = createApi(process.env)
 const root = resolve('dist')
-const types = { '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.task':'application/octet-stream','.svg':'image/svg+xml','.glb':'model/gltf-binary' }
+const types = { '.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.task':'application/octet-stream','.svg':'image/svg+xml','.glb':'model/gltf-binary','.mp3':'audio/mpeg' }
 const server = createServer((req,res) => {
   res.setHeader('X-Content-Type-Options','nosniff')
   res.setHeader('Referrer-Policy','no-referrer')
-  res.setHeader('Permissions-Policy','camera=(self), microphone=()')
+  res.setHeader('Permissions-Policy','camera=(self), microphone=(self), on-device-speech-recognition=(self)')
   api(req,res,async () => {
     try {
       const pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname)

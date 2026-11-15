@@ -1,7 +1,7 @@
-import { loadAtlas, paintAtlas } from './atlas.js'
+import { ShootingStars } from './shooting-stars.js'
 import { Stardust } from './stardust.js'
 import { DolphinWake } from './dolphin-wake.js'
-import { ShootingStars } from './shooting-stars.js'
+import { loadAtlas, paintAtlas } from './atlas.js'
 import * as T from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
@@ -33,7 +33,7 @@ function line(points, color, opacity) {
 }
 
 export class Stage {
-  constructor(parent) {
+  constructor(parent,{background = true} = {}) {
     this.renderer=new T.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'})
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.8))
     this.renderer.setClearColor(0x000000,0)
@@ -41,18 +41,22 @@ export class Stage {
     this.parent = parent
     parent.append(this.renderer.domElement)
     this.scene=new T.Scene()
-    this.atlas = document.createElement("canvas")
-    this.scene.background = new T.CanvasTexture(this.atlas)
-    this.scene.background.colorSpace = T.SRGBColorSpace
-    loadAtlas().then(backdrop => { this.atlasBackdrop = backdrop; this.paintSky() })
+    this.stillSky = matchMedia("(prefers-reduced-motion: reduce)")
+    if (background) {
+      this.atlas = document.createElement("canvas")
+      this.scene.background = new T.CanvasTexture(this.atlas)
+      this.scene.background.colorSpace = T.SRGBColorSpace
+      loadAtlas().then(backdrop => { this.atlasBackdrop = backdrop; this.paintSky() })
+    }
     this.camera=new T.PerspectiveCamera(T.MathUtils.radToDeg(2*Math.atan(5/20)),1,.1,100)
     this.camera.position.z=20
     this.glow=glowTexture()
-    this.sky=new T.Group()
-    this.scene.add(this.sky)
     this.dust = new Stardust(this.scene)
     this.wake = new DolphinWake(this.scene,this.dust)
+    if (background) this.meteors = new ShootingStars(this)
     this.dolphin=new T.Group()
+    this.dolphinRay = new T.Ray()
+    this.dolphinInverse = new T.Matrix4()
     this.loadDolphin()
     this.scene.add(this.dolphin)
     this.scene.add(new T.HemisphereLight(0xd9e4ff,0x222c56,1.6))
@@ -62,12 +66,43 @@ export class Stage {
     const fill=new T.DirectionalLight(0xafc2ff,4.0)
     fill.position.set(-3,1,-5)
     this.scene.add(fill)
-    this.resetSky()
-    this.meteors = new ShootingStars(this)
     this.hands=[]
     this.sonar=[]
     this.portal=null
     this.resize()
+  }
+
+  hitsDolphin(origin, direction) {
+    if (!this.dolphinHitBox) return false
+    this.dolphin.updateMatrix()
+    this.dolphinInverse.copy(this.dolphin.matrix).invert()
+    return this.dolphinRay.set(origin,direction).applyMatrix4(this.dolphinInverse)
+      .intersectsBox(this.dolphinHitBox)
+  }
+
+  showDolphinReply(until) {
+    if (!this.dolphinReply) {
+      const canvas = document.createElement('canvas')
+      canvas.width = 768
+      canvas.height = 144
+      const context = canvas.getContext('2d')
+      context.fillStyle = '#111733'
+      context.beginPath()
+      context.roundRect(4,4,760,136,28)
+      context.fill()
+      context.fillStyle = '#e5e9ff'
+      context.font = '600 48px system-ui'
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.fillText('Hands off! Play with the stars.',384,72)
+      const map = new T.CanvasTexture(canvas)
+      map.colorSpace = T.SRGBColorSpace
+      this.dolphinReply = new T.Sprite(new T.SpriteMaterial({map,depthTest:false,depthWrite:false}))
+      this.dolphinReply.scale.set(5.4,1.01,1)
+      this.dolphinReply.renderOrder = 20
+      this.scene.add(this.dolphinReply)
+    }
+    this.dolphinReplyUntil = until
   }
 
   async loadDolphin() {
@@ -86,6 +121,9 @@ export class Stage {
       rig.scale.setScalar(scale*4)
       rig.position.addScaledVector(center,-scale*4)
       this.dolphin.add(rig)
+      this.dolphinHitBox = new T.Box3().setFromCenterAndSize(
+        new T.Vector3(),size.multiplyScalar(scale*4).max(new T.Vector3(.3,.3,.3))
+      )
       const shell = new T.MeshPhongMaterial({
         color:0x617bdf,emissive:0x293f9b,transparent:true,opacity:.1,
         depthWrite:false,blending:T.AdditiveBlending
@@ -134,28 +172,6 @@ export class Stage {
     }
   }
 
-  resetSky() {
-    const rand=random(1021)
-    for (const [count,size,opacity] of [[720,.14,.56],[145,.25,.54],[18,.68,.53]]) {
-      const coords=[], colors=[]
-      for(let i=0;i<count;i++){
-        coords.push((rand()-.5)*38,(rand()-.5)*13,-4-rand()*5)
-        const tint=rand()
-        colors.push(.55+tint*.42,.72+tint*.22,.87+tint*.13)
-      }
-      const geo=new T.BufferGeometry()
-      geo.setAttribute('position',new T.Float32BufferAttribute(coords,3))
-      geo.setAttribute('color',new T.Float32BufferAttribute(colors,3))
-      this.sky.add(new T.Points(geo,new T.PointsMaterial({size,map:this.glow,transparent:true,opacity,depthWrite:false,vertexColors:true,blending:T.AdditiveBlending})))
-    }
-    for(let i=0;i<31;i++){
-      const light=this.sprite(i%2?0x2a3979:0x284086,.08)
-      light.position.set((rand()-.5)*30,(rand()-.5)*15,-9)
-      light.scale.setScalar(3+rand()*5)
-      this.sky.add(light)
-    }
-  }
-
   sprite(color,opacity=1) {
     return new T.Sprite(new T.SpriteMaterial({map:this.glow,color,opacity,transparent:true,depthWrite:false,blending:T.AdditiveBlending}))
   }
@@ -165,16 +181,18 @@ export class Stage {
     const { clientWidth: width, clientHeight: height } = this.parent
     if (!width || !height) return
     this.aspect=width/height
-    this.atlas.width = width
-    this.atlas.height = height
-    this.paintSky()
+    if (this.atlas) {
+      this.atlas.width = width
+      this.atlas.height = height
+      this.paintSky()
+    }
     this.camera.aspect=this.aspect
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(width,height)
   }
 
-  paintSky() {
-    paintAtlas(this.atlas.getContext("2d"), this.atlas.width, this.atlas.height, this.atlasBackdrop)
+  paintSky(offset = 0,time = 0) {
+    paintAtlas(this.atlas.getContext("2d"), this.atlas.width, this.atlas.height, this.atlasBackdrop,offset,time)
     this.scene.background.needsUpdate = true
   }
 
@@ -208,8 +226,15 @@ export class Stage {
     return group
   }
 
-  edge() {
-    const edge=line([new T.Vector3(),new T.Vector3()],0xbab8fa,.55)
+  edge(preview = false) {
+    const edge = line([new T.Vector3(),new T.Vector3()],0xbab8fa,.55)
+    if (preview) {
+      edge.material.dispose()
+      edge.material = new T.LineDashedMaterial({
+        color:0xc3d9ff,dashSize:.09,gapSize:.075,transparent:true,depthWrite:false
+      })
+      edge.computeLineDistances()
+    }
     this.scene.add(edge)
     return edge
   }
@@ -220,6 +245,11 @@ export class Stage {
     attr.needsUpdate=true
     edge.frustumCulled=false
     edge.material.opacity=opacity
+    if (edge.material.isLineDashedMaterial) {
+      const distances = edge.geometry.attributes.lineDistance
+      distances.setX(1,a.distanceTo(b))
+      distances.needsUpdate = true
+    }
   }
 
   ring(x,y,color=0xb9b6ff) {
@@ -263,7 +293,7 @@ export class Stage {
     this.portal={group,layers,particles,bloom,age:0}
   }
 
-  hand(index,landmarks,connections) {
+  hand(index,landmarks,connections,showPinch = false) {
     let hand=this.hands[index]
     if(!hand){
       hand=new T.Group()
@@ -290,7 +320,8 @@ export class Stage {
     positions.forEach((position,i)=>{
       const dot=hand.userData.dots[i]
       dot.position.copy(position)
-      dot.scale.setScalar(i===8?.4:.23)
+      const pinchTip = i === 4 || i === 8
+      dot.scale.setScalar(showPinch && pinchTip ? .54 : i === 8 ? .4 : .23)
     })
     const attr=hand.userData.bones.geometry.attributes.position
     const dust=hand.userData.dust.geometry.attributes.position
@@ -306,13 +337,15 @@ export class Stage {
     })
     attr.needsUpdate=true
     dust.needsUpdate=true
-    for (const i of [4,8,12,16,20,9]) {
-      const point = positions[i]
-      this.dust.emit(point.x,point.y,point.z,5,.16)
-    }
   }
 
   draw(dt,t) {
+    if (this.dolphinReply) {
+      this.dolphinReply.visible = t < this.dolphinReplyUntil
+      this.dolphinReply.position.copy(this.dolphin.position)
+      this.dolphinReply.position.y += 1.38
+      this.dolphinReply.material.opacity = T.MathUtils.clamp((this.dolphinReplyUntil-t)*5,0,1)
+    }
     this.dolphinMixer?.update(dt)
     if (this.dolphinPoints) {
       this.dolphin.updateWorldMatrix(true,true)
@@ -325,10 +358,11 @@ export class Stage {
       this.wake.update(this.dolphin,t)
     }
     this.dust.update(dt)
-    this.meteors.draw(t)
-    this.sky.position.x = Math.sin(t*.19)*.46 + (this.parallaxX ?? 0)*.55
-    this.sky.position.y = Math.cos(t*.21)*.17 + (this.parallaxY ?? 0)*.29
-    this.sky.rotation.z = Math.sin(t*.075)*.03
+    this.meteors?.draw(t)
+    if (t >= (this.skyUpdate ?? 0) && this.atlasBackdrop && !this.stillSky.matches) {
+      this.skyUpdate = t+.16
+      this.paintSky(Math.sin(t*.025)*4 + (this.parallaxX ?? 0)*.16,t)
+    }
     this.sonar=this.sonar.filter(({item,age},index)=>{
       this.sonar[index].age+=dt
       item.scale.setScalar(.15+age*3.8)

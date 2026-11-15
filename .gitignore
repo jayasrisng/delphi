@@ -28,3 +28,7 @@ com.xreal.xr*.tar.gz
 
 # Share names and example defaults only, never real environment files.
 !/web/.env.example
+
+# Local performance data and generated Specs download archive.
+/.data/
+/specs/Delphi_Voice_Duet_5.15.4.zip
