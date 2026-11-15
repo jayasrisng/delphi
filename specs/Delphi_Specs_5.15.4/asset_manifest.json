@@ -1,0 +1,140 @@
+{
+  "target": "Lens Studio 5.15.4",
+  "model_units": "meters",
+  "scene_units": "centimeters",
+  "star_order": [
+    "C5",
+    "D5",
+    "E5",
+    "G5",
+    "A5"
+  ],
+  "socket_positions_cm": [
+    [
+      -18,
+      8,
+      1
+    ],
+    [
+      -9,
+      -9,
+      5
+    ],
+    [
+      0,
+      13,
+      0
+    ],
+    [
+      9,
+      -5,
+      6
+    ],
+    [
+      18,
+      6,
+      -1
+    ]
+  ],
+  "models": {
+    "Stardust_Cluster": {
+      "size_cm": [
+        59.57,
+        35.23,
+        28.48
+      ],
+      "triangles": 17268,
+      "materials": 5
+    },
+    "Star_01_C5": {
+      "size_cm": [
+        2.72,
+        3.56,
+        2.19
+      ],
+      "triangles": 172,
+      "materials": 2
+    },
+    "Star_02_D5": {
+      "size_cm": [
+        2.72,
+        3.56,
+        2.19
+      ],
+      "triangles": 172,
+      "materials": 2
+    },
+    "Star_03_E5": {
+      "size_cm": [
+        2.72,
+        3.56,
+        2.19
+      ],
+      "triangles": 172,
+      "materials": 2
+    },
+    "Star_04_G5": {
+      "size_cm": [
+        2.72,
+        3.56,
+        2.19
+      ],
+      "triangles": 172,
+      "materials": 2
+    },
+    "Star_05_A5": {
+      "size_cm": [
+        2.72,
+        3.56,
+        2.19
+      ],
+      "triangles": 172,
+      "materials": 2
+    },
+    "Delphinus": {
+      "size_cm": [
+        33.19,
+        22.56,
+        1.5
+      ],
+      "triangles": 1056,
+      "materials": 3
+    },
+    "Leo": {
+      "size_cm": [
+        46.19,
+        28.0,
+        1.5
+      ],
+      "triangles": 1588,
+      "materials": 3
+    },
+    "Place_Burst": {
+      "size_cm": [
+        9.96,
+        9.86,
+        6.14
+      ],
+      "triangles": 624,
+      "materials": 2
+    },
+    "Note_Pulse": {
+      "size_cm": [
+        10.76,
+        10.7,
+        1.68
+      ],
+      "triangles": 624,
+      "materials": 2
+    },
+    "Held_Trail": {
+      "size_cm": [
+        8.32,
+        3.81,
+        3.02
+      ],
+      "triangles": 624,
+      "materials": 2
+    }
+  }
+}
