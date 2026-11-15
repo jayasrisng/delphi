@@ -1,16 +1,67 @@
-# Delphi: Play the stars
+# Delphi · Play the stars
 
-Delphi is a spatial music playground. We’re building it so someone can make a small piece of music with their hands and feel a partner answer. Move a star to find a note, link stars into a loop, and ask Delphi, a dolphin, to play the drums, echo your phrase, or harmonize while you keep playing.
+Delphi is a spatial music playground where you build a constellation by ear and a dolphin plays alongside you. We’re building it so making music can start with simple gestures. Grab a star, move it until you find a sound you like, connect it to another star, and hear the shape become a loop. Delphi can answer your phrase, add percussion, or leave space for your solo.
 
-| Path | What’s here | Status |
-| --- | --- | --- |
-| [web/](web/) | Three.js Studio with desktop mouse, optional webcam hand tracking, and WebXR VR controller input. The web app also has recording and sharing. | Run locally now. The headset path needs a physical test. |
-| [specs/Delphi_Specs_5.15.4/](specs/Delphi_Specs_5.15.4/) | Editable asset pack: a swimming dolphin, five stars, note samples, constellations, effects, and a starter interaction script. | Import into the Specs Base Template with Lens Studio 5.15.4 and SIK 0.15.0. Scene assembly and testing on glasses are pending. |
-| [specs/Dolphin-Duet.md](specs/Dolphin-Duet.md) | Musical behavior, web endpoint contract, and device acceptance steps for the native Lens. | The web app implements the duet. The native Lens still needs the duet and command wiring. |
+[Play in Studio](https://delphi.jayasrisng.com/) · [Watch performances](https://delphi.jayasrisng.com/gallery) · [Upload a clip](https://delphi.jayasrisng.com/upload)
 
-## Run the web Studio
+The screenshots show the local development preview, including SATIE instruments and expanded voice cues. The hosted Studio currently uses the earlier interface. The sample take shown below was recorded in Studio for this README.
 
-With Node 22.13+ and FFmpeg/FFprobe installed:
+## Studio
+
+![Delphi Studio with four instrument stars, a glowing connection, and the stardust dolphin](readme-media/studio.jpg)
+
+- **Play by gesture.** Pinch a star with webcam hand tracking, drag it with a mouse, or aim and grab with a WebXR controller. Move vertically through a pentatonic scale and sideways to change instruments. The development preview uses four SATIE sounds in order from left to right: Moon Harp, Soft Gong, Bellaton (Glass Bells), and Water Glass.
+- **Turn a shape into a loop.** Bring two stars close to see a dashed link preview. Release to connect them. A spark travels along the connection as the phrase plays, and you can keep moving stars to find new pitches and timbres.
+- **Follow the light.** The dolphin swims through a projected field of stars and shooting stars, leaving a trail of particles. Tracked hands appear as stardust, notes pulse at the stars, and Delphi swims toward the star it’s about to play.
+
+## Duet with Delphi
+
+Delphi listens to the notes you play and can echo part of your phrase, harmonize, add a drum accent, or rest. It aims for a free star and schedules its reply on the Web Audio clock so you can keep playing. When configured, the server can suggest automatic replies from recent notes and candidate stars. Local accompaniment works without an AI provider.
+
+The development preview adds named instruments and repeating patterns to **Cue Delphi**. Type a cue, or say it using on-device English recognition on a supported browser.
+
+| Try saying or typing | Delphi’s response |
+| --- | --- |
+| “Play the drums” | Adds a percussion reply while you play. |
+| “Play that back” | Echoes your recent notes. |
+| “Harmonize” | Plays a short harmony to your phrase. |
+| “Play Water Glass” | Plays the named instrument, even before you’ve played a phrase. |
+| “Alternate Moon Harp and Soft Gong” | Switches between two sounds until you stop it. |
+| “Play Water Glass every two seconds” | Repeats a note at the requested interval. |
+
+For headset play, open the Studio over HTTPS in a browser that supports immersive WebXR and choose **Enter VR**. Aim at a star, hold the trigger to move it, and squeeze the controller grip to cue drums. Physical headset behavior still needs to be verified.
+
+## Record and share a take
+
+![Studio review dialog with a duet preview and options to publish or keep the take private](readme-media/review.jpg)
+
+Choose **Record** to make a 30-second take. The development preview hides the interface during the take so the video shows the constellation, the dolphin, and the particles. The recording captures the rendered scene and the generated mix, including Delphi’s replies. Camera frames feed the hand tracker locally, and the voice microphone is used for cues.
+
+Play the take back before deciding what to do with it. **Keep private** offers local video and audio downloads for a Studio take. **Publish performance** adds a title and creator name, creates a shareable performance page, and adds the clip to the Gallery. The site’s **Share** button also opens a constellation QR code that links back to the Studio.
+
+## Gallery and performance pages
+
+![Delphi Gallery playing a sample performance with controls for sound, sharing, and downloads](readme-media/gallery.jpg)
+
+**Home** plays performances in a scrolling gallery with playback and sound controls. **Feed** gives you a thumbnail grid with view and like counts. Select a tile to open its player. Every published take has a performance page with its own link, video playback, likes, comments, and separate audio and video downloads. You can share a clip with someone who has never opened the Studio.
+
+## Upload a clip
+
+![Delphi Upload page with a Choose clip button against the star field](readme-media/upload.jpg)
+
+Use **Upload** to bring in a clip from your device, including a Spectacles recording saved to your phone. Choose an MP4, MOV, or WebM with an audio track, up to **50 MB** and **3 minutes**. Preview it before publishing. Delphi prepares a browser-ready video, a thumbnail, and a separate audio download for the performance page.
+
+## Specs
+
+The Lens Studio source pack includes a rigged, swimming dolphin, playable stars, note samples, constellation models, dust textures, and placement, pulse, and trail effects. The starter scene script supports two-hand pinch, placement, and touch-to-play interactions. The source pack targets **Lens Studio 5.15.4** and **Spectacles Interaction Kit 0.15.0**. A native duet handoff is also in development, with the four SATIE instruments and hooks for voice, star interaction, and dolphin movement. It still needs to be wired into a Lens scene and tested on the glasses.
+
+![Specs asset sheet showing the dolphin, playable stars, constellations, and particle effects](specs/Delphi_Specs_5.15.4/Preview.png)
+
+[Specs import guide](specs/Delphi_Specs_5.15.4/README.md) · [Native duet behavior and timing contract](specs/Dolphin-Duet.md)
+
+## Run locally
+
+Install **Node 22.13+**, **FFmpeg**, and **FFprobe**.
 
 ```sh
 cd web
@@ -18,15 +69,4 @@ npm ci
 npm run dev -- --port 4177
 ```
 
-Open [localhost:4177](http://localhost:4177/) and choose **Play with mouse** or **Enable camera & sound**. Grab a star, move it vertically to change pitch, and release near another to start a loop. Choose **Play drums** or type a cue in **Ask Delphi**. In browsers that support on-device English speech recognition, **Speak a cue** lets you say the same phrases. The microphone is used only for that optional cue; recordings capture the generated music.
-
-On a headset browser over HTTPS, **Enter VR** appears when immersive VR is supported. Aim a controller at a star, hold the trigger to move it, and squeeze the grip to ask for drums. The headset browser needs to reach the web host; localhost on your computer is not the headset’s localhost. See the [web setup and deployment notes](web/README.md).
-
-## Interaction specifications
-
-- The Studio has four movable stars and four horizontal instrument zones: lyre, drums, flute, and harp. Height selects one of 15 pentatonic steps. Notes play immediately; loops and dolphin replies use the Web Audio clock.
-- Delphi responds to player notes, can play on a free star, and swims toward the star before it pulses. A drum cue uses drum timbre even if the drum-zone star is held. If every star is held, Delphi waits.
-- Typed and spoken cues and controller drum cues select the reply locally. Automatic replies can also use an optional server model. If it’s unconfigured or unreachable, the local rules still play. The model receives musical events and candidate stars; camera frames and voice cues stay on the device.
-- The Specs starter uses five fixed-pitch stars. Its asset import and device checks are in the [Specs setup guide](specs/Delphi_Specs_5.15.4/README.md); matching the browser duet is a separate native implementation step.
-
-The earlier Unity/XREAL prototype and working design bundles remain local. The shared source is the web app and the Specs pack; installed SDKs, generated builds, and credentials stay out of Git.
+Open [localhost:4177](http://localhost:4177/) and start with the mouse or camera. Local publishing uses SQLite and disk storage. See the [web setup and deployment guide](web/README.md) for hosted media storage and optional model accompaniment.
