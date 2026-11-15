@@ -1,11 +1,8 @@
-"""Build Delphi's standalone glTF 2.0, sprite, note and preview assets."""
+"""Build Delphi's standalone glTF 2.0, sprite and preview assets."""
 import json
 import math
 import random
 import struct
-import subprocess
-import tempfile
-import wave
 import zlib
 from pathlib import Path
 
@@ -206,28 +203,6 @@ def sprite(name, flare):
     (ROOT/"Textures"/f"{name}.png").write_bytes(png+chunk(b"IDAT",zlib.compress(rgba))+chunk(b"IEND",b""))
 
 
-def audio():
-    sample_rate=44100
-    with tempfile.TemporaryDirectory() as temp:
-        source=Path(temp)/"note.wav"
-        for i,(label,midi) in enumerate(zip(NOTES,[72,74,76,79,81])):
-            root=440*2**((midi-69)/12)
-            samples=[]
-            for frame in range(int(sample_rate*0.9)):
-                t=frame/sample_rate
-                attack=min(1,t/0.011)
-                end=min(1,(0.9-t)/0.11)
-                sample=sum(gain*math.exp(-t*decay)*math.sin(TAU*root*ratio*t)
-                           for ratio,gain,decay in [(1,.51,4.7),(2.003,.23,7),(3.01,.13,11),(4.16,.07,19)])
-                samples.append(round(22500*sample*attack*end))
-            with wave.open(str(source),"wb") as out:
-                out.setparams((1,2,sample_rate,0,"NONE","not compressed"))
-                out.writeframes(struct.pack(f"<{len(samples)}h",*samples))
-            subprocess.run(["ffmpeg","-nostdin","-loglevel","error","-y","-i",str(source),
-                            "-codec:a","libmp3lame","-b:a","96k",
-                            str(ROOT/"Audio"/f"Note_{i+1:02}_{label}.mp3")],check=True)
-
-
 def main():
     cluster()
     for i,color in enumerate(PALETTE):
@@ -250,7 +225,6 @@ def main():
         effect(name, shape)
     sprite("Dust_Soft",False)
     sprite("Dust_Flare",True)
-    audio()
     (ROOT/"asset_manifest.json").write_text(json.dumps(
         {"target":"Lens Studio 5.15.4","model_units":"meters","scene_units":"centimeters",
          "star_order":NOTES,"socket_positions_cm":SOCKETS,"models":SIGNALS},indent=2)+"\n")

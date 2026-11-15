@@ -1,11 +1,11 @@
+import { voices, voiceIndex } from './satie.js'
+
 const SCALE = [0, 2, 4, 7, 9]
 const TONIC = 60
-const TIMBRES = [
-  [[1,1,.7],[2,.32,.31],[3,.1,.18]],
-  [[1,1,.43],[2.01,.54,.28],[4.03,.25,.14]],
-  [[1,1,.86],[3,.19,.45],[5,.04,.26]],
-  [[1,1,1.2],[2,.28,.7],[3,.12,.4]]
-]
+function playbackRate(step,index) {
+  const midi = TONIC + 12 * Math.floor(step/5) + SCALE[step%5]
+  return 440 * 2 ** ((midi-69)/12) / voices[index].root
+}
 
 export function pitch(y) {
   return Math.max(0, Math.min(10, Math.round((.8-y)*14)))
@@ -35,7 +35,8 @@ export class Music {
       echo.connect(echoLevel).connect(this.bus)
       this.echo = echo
     }
-    return this.context.resume()
+    this.loading ??= this.loadSamples()
+    return Promise.all([this.context.resume(), this.loading])
   }
 
   mute() {
@@ -44,65 +45,86 @@ export class Music {
     return this.muted
   }
 
+  async loadSamples() {
+    try {
+      this.samples = await Promise.all(voices.map(async ({file}) => {
+        const response = await fetch('/audio/satie/'+file+'.mp3')
+        if (!response.ok) throw new Error('Could not load Satie sample '+file)
+        const buffer = await this.context.decodeAudioData(await response.arrayBuffer())
+        return buffer
+      }))
+    } catch (error) {
+      this.loading = undefined
+      throw error
+    }
+  }
+
   ping(loud = .055) {
-    if (!this.context) return
-    const t = this.context.currentTime
-    this.tone(550, loud, .55, t, .012, 320)
-    this.tone(550, loud * .37, .45, t + .24, .012, 410)
+    this.note({ step:5,zone:2,gain:loud*4 })
+  }
+
+  sample(index,step,time,destination) {
+    const source = this.context.createBufferSource()
+    source.buffer = this.samples[index]
+    source.playbackRate.value = playbackRate(step,index)
+    source.connect(destination)
+    source.start(time)
+    return source
   }
 
   note(star, time = this.context?.currentTime) {
-    if (!this.context) return
-    const step = star.step
-    const midi = TONIC + 12 * Math.floor(step/5) + SCALE[step%5]
-    const hz = 440 * 2 ** ((midi-69)/12)
-    const gain = star.gain ?? .65
+    if (!this.samples) return
+    const ctx = this.context
+    const envelope = ctx.createGain()
     const attack = star.attack ?? .024
-    if (star.zone === 1) {
-      this.tone(65 + step * 5, .30 * gain, .28, time, Math.min(.04,attack), 38 + step * 2)
-      this.tone(180 + step * 12, .08 * gain, .12, time, Math.min(.03,attack), 62)
-      return
-    }
-    for (const [ratio, level, decay] of TIMBRES[star.zone]) {
-      this.tone(hz * ratio, .23 * gain * level, decay, time, attack)
+    const gain = .68 * (star.gain ?? .65)
+    const source = this.sample(voiceIndex(star),star.step,time,envelope)
+    source.loop = Boolean(star.duration)
+    const end = time + (star.duration ?? Math.min(1.4,source.buffer.duration/source.playbackRate.value))
+    envelope.gain.setValueAtTime(0,time)
+    envelope.gain.linearRampToValueAtTime(gain,Math.min(time+attack,end))
+    if (star.duration) {
+      envelope.gain.setValueAtTime(gain,Math.max(time+attack,end-.08))
+      envelope.gain.linearRampToValueAtTime(0,end)
+    } else envelope.gain.setTargetAtTime(0,Math.min(time+.13,end),.28)
+    envelope.connect(this.bus)
+    envelope.connect(this.echo)
+    source.stop(end)
+    return () => {
+      const now = ctx.currentTime
+      envelope.gain.cancelScheduledValues(now)
+      envelope.gain.setTargetAtTime(0,now,.012)
+      source.stop(Math.min(end,now+.045))
     }
   }
 
   hold(star) {
     const ctx = this.context
-    const voice = ctx.createOscillator()
-    const envelope = ctx.createGain()
-    voice.type = star.zone === 2 ? 'sine' : 'triangle'
-    voice.connect(envelope).connect(this.bus)
-    envelope.gain.value = 0
-    voice.start()
-    return {
-      update: current => {
-        const midi = TONIC + 12 * Math.floor(current.step / 5) + SCALE[current.step % 5]
-        voice.frequency.setTargetAtTime(440 * 2 ** ((midi - 69) / 12), ctx.currentTime, .016)
-        envelope.gain.setTargetAtTime(.07 * current.gain, ctx.currentTime, .045)
-      },
-      stop: () => {
-        envelope.gain.setTargetAtTime(0, ctx.currentTime, .025)
-        voice.stop(ctx.currentTime + .15)
-      }
+    let playing, index
+    const fade = voice => {
+      if (!voice) return
+      const now = ctx.currentTime
+      voice.envelope.gain.setTargetAtTime(0,now,.04)
+      voice.source.stop(now+.23)
     }
-  }
-
-  tone(hz, volume, length, time, attack, endHz = hz) {
-    const ctx = this.context
-    const oscillator = ctx.createOscillator()
-    const envelope = ctx.createGain()
-    oscillator.frequency.setValueAtTime(hz, time)
-    oscillator.frequency.exponentialRampToValueAtTime(endHz, time + length)
-    envelope.gain.setValueAtTime(.0001, time)
-    envelope.gain.exponentialRampToValueAtTime(volume, time + attack)
-    envelope.gain.exponentialRampToValueAtTime(.0001, time + length)
-    oscillator.connect(envelope)
-    envelope.connect(this.bus)
-    envelope.connect(this.echo)
-    oscillator.start(time)
-    oscillator.stop(time + length + .01)
+    const update = current => {
+      const next = voiceIndex(current)
+      const now = ctx.currentTime
+      if (next !== index) {
+        fade(playing)
+        index = next
+        const envelope = ctx.createGain()
+        envelope.gain.value = 0
+        envelope.connect(this.bus)
+        const source = this.sample(index,current.step,now,envelope)
+        source.loop = true
+        playing = { source, envelope }
+      }
+      playing.source.playbackRate.setTargetAtTime(playbackRate(current.step,index),now,.025)
+      playing.envelope.gain.setTargetAtTime(.20*current.gain,now,.09)
+    }
+    update(star)
+    return { update,stop:() => fade(playing) }
   }
 
   loop(sequence, links) {

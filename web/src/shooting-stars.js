@@ -29,9 +29,9 @@ export class ShootingStars {
     this.motion = matchMedia('(prefers-reduced-motion: reduce)')
     const map = streakTexture()
     this.stars = [
-      { x: .19, y: .07, dx: .29, dy: .19, phase: 0, period: 6.8, duration: 1.35 },
-      { x: .64, y: .20, dx: .32, dy: .23, phase: 5.1, period: 9.5, duration: 1.65 },
-      { x: .04, y: .49, dx: .26, dy: .22, phase: 7.1, period: 11.3, duration: 1.5 }
+      { x: .19, y: .07, dx: .29, dy: .19, phase: 11.5, period: 15.2, duration: 1.35 },
+      { x: .64, y: .20, dx: .32, dy: .23, phase: 7.4, period: 17.6, duration: 1.65 },
+      { x: .04, y: .49, dx: .26, dy: .22, phase: 3.4, period: 21.3, duration: 1.5 }
     ].map(route => {
       const sprite = new T.Sprite(new T.SpriteMaterial({
         map, transparent:true, depthWrite:false, blending:T.AdditiveBlending

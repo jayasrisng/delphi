@@ -1,0 +1,129 @@
+// Snapshot of web/src/duet.js and web/src/satie.js for the Lens CommonJS loader.
+// Pure musical rules shared with the Lens. Steps index the common pentatonic scale.
+const ACTIONS = ['echo', 'beat', 'harmonize', 'rest']
+const LAST_STEP = 14
+
+function availableStars(stars, occupied, phrase) {
+  const last = phrase[phrase.length-1]
+  const open = stars.filter(star => !occupied.includes(star.id))
+  const others = open.filter(star => star.id !== last?.id)
+  return others.length ? others : open
+}
+
+function validChoice(choice, stars) {
+  return Boolean(choice && ACTIONS.includes(choice.action) &&
+    (choice.action === 'rest' || stars.some(star => star.id === choice.star)))
+}
+
+function chooseReply(phrase, stars, beatMs, previous) {
+  if (!stars.length || !phrase.length) return { action: 'rest' }
+  const last = phrase[phrase.length-1]
+  const gaps = phrase.slice(1).map(note => note.ms)
+  const busy = gaps.filter(gap => gap < beatMs * .75).length > gaps.length / 2
+  const drum = stars.find(star => star.zone === 1)
+  const clear = stars.filter(star => star.zone !== last.zone && star.zone !== 1)
+  const distinct = clear.filter(star => star.id !== previous?.star)
+  const partner = distinct[0] ?? clear[0] ?? stars[0]
+  if (busy && previous?.action !== 'rest') return { action: 'rest' }
+  if (drum && phrase.length >= 4 && previous?.action === 'echo') return { action: 'beat', star: drum.id }
+  return { action: previous?.action === 'echo' ? 'harmonize' : 'echo', star: partner.id }
+}
+
+function parseCue(text) {
+  const command = text.toLowerCase().replace(/[^a-z ]/g,' ').trim().replace(/ +/g,' ')
+  if (/^(?:(?:hey )?delphi )?(?:please )?(?:(?:play|add|give me) )?(?:(?:a|the|some) )?(?:drums?|beat|percussion)(?: with me)?(?: please)?$/.test(command)) return 'beat'
+  if (/^(?:(?:hey )?delphi )?(?:please )?(?:echo(?: me)?|copy me|play that(?: back)?)(?: please)?$/.test(command)) return 'echo'
+  if (/^(?:(?:hey )?delphi )?(?:please )?(?:harmonize(?: with me)?|play harmony)(?: please)?$/.test(command)) return 'harmonize'
+  return null
+}
+
+function chooseCue(action, phrase, stars, occupied) {
+  if (!phrase.length || !['beat','echo','harmonize'].includes(action)) return null
+  const open = stars.filter(star => !occupied.includes(star.id))
+  const drum = action === 'beat' && open.find(star => star.zone === 1)
+  const target = drum || availableStars(stars, occupied, phrase)[0]
+  return target ? { action, star:target.id } : null
+}
+
+function replyNotes(choice, phrase, stars, beatMs) {
+  if (!validChoice(choice, stars) || choice.action === 'rest' || !phrase.length) return []
+  const target = stars.find(star => star.id === choice.star)
+  if (choice.action === 'beat') return [0, 1.5].map(beat => ({ ...target, zone:1, beat, gain: .32 }))
+  const motif = choice.action === 'echo' ? phrase.slice(-3) : phrase.slice(-2)
+  let beat = 0
+  return motif.map((event, index) => {
+    if (index) beat += event.ms < beatMs * .75 ? .5 : 1
+    const shift = choice.action === 'harmonize' ? (event.step <= LAST_STEP-2 ? 2 : -3) : 0
+    return { ...target, beat, step: event.step + shift, gain: .26 + .18 * (event.gain ?? .5) }
+  })
+}
+
+
+// Bellaton is the Studio name for the pack's Glass Bells recording.
+const voices = [
+  { name:'Moon Harp', file:'moon-harp', root:109.91 },
+  { name:'Soft Gong', file:'soft-gong', root:294.88 },
+  { name:'Bellaton', file:'glass-bells', root:220.96 },
+  { name:'Water Glass', file:'water-glass', root:564 }
+]
+
+function voiceIndex(star) {
+  return voices[star.zone] ? star.zone : 0
+}
+
+function zoneAt(x, previous) {
+  const position = Math.max(0,Math.min(.9999,x))
+  if (previous != null && position >= previous/4-.012 && position <= (previous+1)/4+.012) return previous
+  return Math.floor(position*4)
+}
+
+function instrumentCue(text) {
+  let name = text.toLowerCase().replace(/[^a-z ]/g,' ').trim().replace(/ +/g,' ')
+  name = name.replace(/^(?:hey )?(?:delphi|delfi|delphy) /,'')
+    .replace(/^(?:(?:can|could|would) you |i (?:want to|wanna|would like to) |let s |please )/,'')
+    .replace(/^(?:play|try|give me) /,'')
+    .replace(/^(?:(?:with|the|some) )+/,'')
+    .replace(/(?: with me| please)+$/,'')
+  const aliases = { harp:0,'moon heart':0,gong:1,'soft gone':1,'glass bells':2,bells:2,
+    'bella ton':2,bellatone:2,'bell tone':2,'water class':3,'water glasses':3 }
+  const index = voices.findIndex(item => item.name.toLowerCase() === name)
+  return index >= 0 ? index : Object.prototype.hasOwnProperty.call(aliases,name) ? aliases[name] : null
+}
+
+function alternatingCue(text) {
+  const normalized = text.toLowerCase().trim()
+    .replace(/[.!?]+$/,'')
+    .replace(/^(?:hey(?:\s+delphi)?|delphi)[,\s]+/,'')
+    .replace(/^(?:keep\s+)?alternat(?:e|ing)\s+(?:between\s+)?/,'')
+    .replace(/\s+(?:on repeat|back and forth)$/,'')
+  const parts = normalized.split(/\s*,\s*(?:(?:and )?then\s+)?|\s+(?:and then|then|and)\s+/)
+  if (parts.length < 2) return null
+  const first = parts[0].match(/^(.*?)\s+for\s+(one|two|three|four|five|six|seven|eight|\d+(?:\.\d+)?)\s+seconds?$/)
+  if (first) parts[0] = first[1]
+  const zones = parts.map(part => {
+    const name = part.trim().replace(/^(?:(?:go\s+)?back\s+to\s+|go\s+to\s+|return\s+to\s+)/,'')
+    return instrumentCue(/^(?:play|try)\b/.test(name) ? name : 'play '+name)
+  })
+  if (zones.some(zone => zone == null)) return null
+  const distinct = [...new Set(zones)]
+  if (distinct.length !== 2) return null
+  const words = ['one','two','three','four','five','six','seven','eight']
+  const duration = first ? (Number(first[2]) || words.indexOf(first[2])+1) : 1
+  return { zones:distinct, duration:Math.max(.25,Math.min(8,duration)) }
+}
+
+function repeatCue(text) {
+  const normalized = text.toLowerCase().trim()
+    .replace(/[.!?]+$/,'')
+    .replace(/^(?:hey(?:\s+(?:delphi|delfi|delphy))?|delphi)[,\s]+/,'')
+  const match = normalized.match(/^(.*?)\s+(?:every\s+(one|two|three|four|five|six|seven|eight|\d+(?:\.\d+)?)\s+seconds?|at intervals)$/)
+  if (!match) return null
+  const zone = instrumentCue(match[1])
+  if (zone == null && !/^play (?:something|a note)(?: with me)?$/.test(match[1])) return null
+  const words = ['one','two','three','four','five','six','seven','eight']
+  const seconds = match[2] ? Number(match[2]) || words.indexOf(match[2])+1 : 2
+  const interval = Math.max(.35,Math.min(12,seconds))
+  return { zones:[zone], interval, duration:Math.min(.85,interval*.67) }
+}
+
+module.exports = { availableStars, chooseReply, chooseCue, replyNotes, validChoice, parseCue, instrumentCue, alternatingCue, repeatCue, zoneAt, voices };

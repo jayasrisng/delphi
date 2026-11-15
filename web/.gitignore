@@ -7,3 +7,5 @@ public/wasm/
 !.env.example
 
 .vercel/
+.vercel
+.env*

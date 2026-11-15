@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Silver Strings",
+    "source": "Satie library",
+    "clip": "community/low-sustained-bowed-double",
+    "license": "Generated (ElevenLabs, via Satie)",
+    "measuredSourceHz": null,
+    "loopSeconds": 19.83
+  },
+  {
+    "name": "Moon Harp",
+    "source": "Satie library",
+    "clip": "community/harp-a2",
+    "license": "CC0",
+    "measuredSourceHz": 109.91,
+    "loopSeconds": 26.23
+  },
+  {
+    "name": "Aurora Keys",
+    "source": "Satie library",
+    "clip": "community/piano-d3",
+    "license": "CC0",
+    "measuredSourceHz": null,
+    "loopSeconds": 2.08
+  },
+  {
+    "name": "Orbit Mallets",
+    "source": "new Satie take",
+    "sampleId": "b0394af1-86e4-43d0-8763-531c92ca04ce",
+    "costCents": 3,
+    "measuredSourceHz": 261.47,
+    "loopSeconds": 7.85
+  },
+  {
+    "name": "Soft Gong",
+    "source": "new Satie take",
+    "sampleId": "573caf9e-1d0e-48c0-9b36-409d86e1fc5e",
+    "costCents": 3,
+    "measuredSourceHz": 294.88,
+    "loopSeconds": 6.94
+  },
+  {
+    "name": "Breath Flute",
+    "source": "new Satie take",
+    "sampleId": "373ce36a-85e6-422e-8922-e039c9c61683",
+    "costCents": 3,
+    "measuredSourceHz": 530.74,
+    "loopSeconds": 3.77
+  },
+  {
+    "name": "Velvet Horn",
+    "source": "new Satie take",
+    "sampleId": "5b9dfb84-5e27-4249-b707-a3a182783c0d",
+    "costCents": 3,
+    "measuredSourceHz": 233.37,
+    "loopSeconds": 8.81
+  },
+  {
+    "name": "Glass Bells",
+    "source": "Satie library",
+    "clip": "community/thin-glass-filament-singing",
+    "license": "Generated (ElevenLabs, via Satie)",
+    "measuredSourceHz": 220.96,
+    "loopSeconds": 35.36
+  },
+  {
+    "name": "Water Glass",
+    "source": "new Satie take",
+    "sampleId": "34b4913b-30c9-4947-a05a-fc982fa1eb98",
+    "costCents": 3,
+    "measuredSourceHz": 564.0,
+    "loopSeconds": 3.54
+  },
+  {
+    "name": "Dew Drops",
+    "source": "Satie library",
+    "clip": "community/water-drop-striking-standing-4",
+    "license": "Generated (ElevenLabs, via Satie)",
+    "measuredSourceHz": null,
+    "loopSeconds": 3.84
+  }
+]

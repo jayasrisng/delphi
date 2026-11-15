@@ -1,6 +1,11 @@
 import './style.css'
+import { mountPageSky } from './atlas.js'
+import { mountCursorTrail } from './cursor-trail.js'
 import QRCode from 'qrcode'
 import { addIcon } from './icons.js'
+import { connectOnboarding } from './onboarding.js'
+
+mountCursorTrail()
 
 const $ = id => document.getElementById(id)
 const randomId = () => {
@@ -169,13 +174,24 @@ function showReview({ video,audio,source }) {
     <label class="field">Title <span>(optional)</span><input name="title" maxlength="100"></label>
     <div class="actions"><button class="primary">Publish performance</button><button type="button" id="private">Keep private</button></div>
     <p class="status" role="status"></p>`
+  const home = () => link('Home','/','chip')
+  if (source === 'studio') form.querySelector('.actions').append(home())
   const status = form.querySelector('.status')
+  const studioFeedback = node('p','','status')
+  studioFeedback.id = 'review-voice-feedback'
+  studioFeedback.setAttribute('role','status')
+  if (source === 'studio') {
+    const keepPlaying = node('button','Keep playing','bare')
+    keepPlaying.type = 'button'
+    keepPlaying.onclick = () => dialog.close()
+    form.querySelector('.actions').prepend(keepPlaying)
+  }
   content.replaceChildren(
     node('h2',source === 'studio' ? 'Publish your duet?' : 'Publish this clip?'),
     node('p',source === 'studio'
       ? 'Preview your take. Publishing makes the rendered video and music available to anyone with the link and in the Gallery.'
       : 'Review the footage before sharing. Publishing makes the clip and its extracted audio public in the Gallery.'),
-    player(preview),form
+    player(preview),form,studioFeedback
   )
   let ticket, publishing = false
   const cancel = event => { if (publishing) event.preventDefault() }
@@ -194,6 +210,7 @@ function showReview({ video,audio,source }) {
     const close = node('button','Done')
     close.onclick = () => dialog.close()
     downloads.append(close)
+    if (source === 'studio') downloads.append(home())
     form.replaceWith(node('p','This take stays on this device.'),downloads)
   }
   form.onsubmit = async event => {
@@ -219,7 +236,7 @@ function showReview({ video,audio,source }) {
       const { slug } = await api('/publish/finish',{method:'POST',body:JSON.stringify({ ...metadata,ticket })})
       const close = node('button','Done')
       close.onclick = () => dialog.close()
-      content.replaceChildren(node('h2','Your performance is published.'),node('p','Copy the link to share your performance.'),share(slug),close)
+      content.replaceChildren(node('h2','Your performance is published.'),node('p','Copy the link to share your performance.'),share(slug),close,...(source === 'studio' ? [home()] : []))
     } catch (error) {
       status.textContent = error.message
       buttons.forEach(button => { button.disabled = false })
@@ -228,6 +245,19 @@ function showReview({ video,audio,source }) {
     }
   }
   dialog.showModal()
+}
+
+function mountPageDolphin() {
+  const swimmer = node('div','','page-delphi')
+  swimmer.setAttribute('aria-hidden','true')
+  document.querySelector('.page-sky').after(swimmer)
+  import('./page-dolphin.js').then(module => module.mountPageDolphin(swimmer)).catch(() => {
+    const portrait = node('img')
+    portrait.src = '/brand/delphi-portrait.png'
+    portrait.alt = ''
+    swimmer.replaceChildren(portrait)
+  })
+  return swimmer
 }
 
 function likeButton(base, feedback, initial, asIcon = false, onChange) {
@@ -257,6 +287,13 @@ function likeButton(base, feedback, initial, asIcon = false, onChange) {
       const data = await api(base+'/like',{method:'PUT',body:JSON.stringify({liked:!liked})})
       update(data)
       onChange?.(data)
+      if (data.liked) {
+        feedback.textContent = 'Delphi says thanks! ✦'
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          button.animate([{scale:1},{scale:1.23},{scale:1}],{duration:460})
+          pageDolphin?.animate([{filter:'brightness(1)'},{filter:'brightness(2.5)'},{filter:'brightness(1)'}],{duration:720})
+        }
+      }
     }
     catch (error) { feedback.textContent = error.message }
     finally { button.disabled = false }
@@ -290,6 +327,123 @@ function downloadMenu(slug) {
   })
   container.append(trigger,options)
   return container
+}
+
+const commentLabel = count => `${count} ${count === 1 ? 'comment' : 'comments'}`
+
+function commentThread(base, items, onChange = () => {}) {
+  const comments = node('div','','comment-list')
+  const form = node('form','','comment-composer')
+  form.innerHTML = `<input name="name" aria-label="Name" placeholder="Your name" maxlength="50" required autocomplete="nickname">
+    <div class="comment-entry">
+      <input name="text" aria-label="Comment" placeholder="Add a comment…" maxlength="400" required enterkeyhint="send">
+      <button>Post</button>
+    </div>
+    <label class="trap" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+    <p class="status" role="status"></p>`
+  const name = form.elements.namedItem('name')
+  const text = form.elements.namedItem('text')
+  const submit = form.querySelector('.comment-entry button')
+  const status = form.querySelector('.status')
+  name.value = localStorage.getItem('celestial-comment-name') || ''
+  const reactions = node('div','','comment-reactions')
+  for (const [emoji,label] of [['✨','Sparkles'],['💙','Blue heart'],['👏','Applause'],['🎵','Music note']]) {
+    const reaction = node('button',emoji,'bare')
+    reaction.type = 'button'
+    reaction.setAttribute('aria-label',`React with ${label}`)
+    reaction.onclick = () => {
+      if (submit.disabled) return
+      text.value = emoji
+      form.requestSubmit()
+    }
+    reactions.append(reaction)
+  }
+  form.append(reactions)
+
+  const showComment = item => {
+    const comment = node('article','','comment')
+    const message = node('div','','comment-message')
+    message.append(node('strong',item.author),node('span',item.body))
+    comment.append(message)
+    if (item.mine) {
+      const remove = node('button','Remove','bare')
+      remove.onclick = async () => {
+        remove.disabled = true
+        try {
+          await api(base+'/comments/'+item.id,{method:'DELETE'})
+          comment.remove()
+          onChange(-1)
+        } catch (error) {
+          status.textContent = error.message
+          remove.disabled = false
+        }
+      }
+      comment.append(remove)
+    }
+    comments.prepend(comment)
+  }
+  items.forEach(showComment)
+  form.onsubmit = async event => {
+    event.preventDefault()
+    if (submit.disabled) return
+    const fields = new FormData(form)
+    if (!name.value.trim() || !text.value.trim()) {
+      status.textContent = 'Add your name and a comment.'
+      const empty = !name.value.trim() ? name : text
+      empty.focus()
+      return
+    }
+    submit.disabled = true
+    status.textContent = ''
+    try {
+      const item = await api(base+'/comments',{ method:'POST',body:JSON.stringify(Object.fromEntries(fields)) })
+      showComment(item)
+      localStorage.setItem('celestial-comment-name',item.author)
+      if (text.value === fields.get('text')) text.value = ''
+      onChange(1)
+    } catch (error) { status.textContent = error.message }
+    finally { submit.disabled = false }
+  }
+  return { form, comments }
+}
+
+function openComments(base, initialCount, onCount) {
+  const sheet = node('dialog','','comment-sheet')
+  sheet.setAttribute('aria-label','Comments')
+  const header = node('header','','comment-sheet-header')
+  const close = node('button','Close','bare')
+  close.type = 'button'
+  close.onclick = () => sheet.close()
+  const title = node('h2',`Comments · ${initialCount}`)
+  header.append(title,close)
+  const content = node('div','','comment-sheet-content')
+  const loading = node('p','Loading comments…','status')
+  loading.setAttribute('role','status')
+  content.append(loading)
+  sheet.append(header,content)
+  document.body.append(sheet)
+  sheet.addEventListener('click',event => {
+    if (event.target === sheet) sheet.close()
+  })
+  const controller = new AbortController()
+  sheet.onclose = () => { controller.abort(); sheet.remove() }
+  sheet.showModal()
+  api(base,{signal:controller.signal}).then(data => {
+    if (!sheet.open) return
+    let count = data.commentCount ?? data.comments.length
+    function updateCount() {
+      title.textContent = `Comments · ${count}`
+      onCount(count)
+    }
+    updateCount()
+    const {form,comments} = commentThread(base,data.comments,delta => {
+      count = Math.max(0,count+delta)
+      updateCount()
+    })
+    content.replaceChildren(form,comments)
+  }).catch(error => {
+    if (sheet.open) loading.textContent = error.message
+  })
 }
 
 function gallery() {
@@ -331,7 +485,7 @@ function gallery() {
   },{root:cards,rootMargin:'0px 0px 280px 0px'})
   document.addEventListener('visibilitychange',() => { if (document.hidden) currentVideo?.pause() })
 
-  function postFor(item, onView, onLike) {
+  function postFor(item, onView, onLike, onComment) {
     const base = '/performance/'+item.slug
     const post = node('article','','feed-post')
     const video = player('/api'+base+'/video','/api'+base+'/thumb')
@@ -339,6 +493,13 @@ function gallery() {
     video.muted = true
     video.preload = 'none'
     video.controls = false
+    const media = node('div','','feed-media')
+    video.addEventListener('loadedmetadata',() => {
+      if (video.videoWidth && video.videoHeight) {
+        media.style.setProperty('--clip-ratio',String(video.videoWidth/video.videoHeight))
+      }
+    })
+    media.append(video)
     video.setAttribute('aria-label',item.title)
     countPlayback(video,base,onView)
     const toggle = node('button','Play','feed-play')
@@ -371,11 +532,23 @@ function gallery() {
     info.append(heading,node('p',item.creator),feedback)
     const actions = node('div','','feed-actions')
     const like = likeButton(base,feedback,typeof item.likes === 'number' ? item : null,true,onLike)
-    const comments = addIcon(link('','/p/'+item.slug+'#comments','bare'),'comment','Comments')
+    const comments = addIcon(node('button','','bare'),'comment','Comments')
+    const commentTotal = node('span','','action-count')
+    comments.append(commentTotal)
+    function updateCommentCount(count) {
+      item.commentCount = count
+      commentTotal.textContent = String(count)
+      comments.setAttribute('aria-label',`Comments · ${commentLabel(count)}`)
+      onComment?.()
+    }
+    updateCommentCount(item.commentCount ?? 0)
+    comments.type = 'button'
+    comments.setAttribute('aria-haspopup','dialog')
+    comments.onclick = () => openComments(base,item.commentCount,updateCommentCount)
     actions.append(like.button,comments,copyLink(item.slug,true),downloadMenu(item.slug))
     const controls = node('div','','feed-playback')
     controls.append(toggle,audio)
-    post.append(video,info,actions,controls)
+    post.append(media,info,actions,controls)
 
     if (typeof item.likes !== 'number') {
       const social = new IntersectionObserver(entries => {
@@ -396,18 +569,23 @@ function gallery() {
     image.src = '/api/performance/'+item.slug+'/thumb'
     image.alt = ''
     image.loading = 'lazy'
+    image.onerror = () => image.removeAttribute('src')
     const title = node('strong',item.title)
     const counts = node('span','','tile-counts')
     const views = node('span')
     const likes = node('span')
+    const comments = addIcon(node('span','','tile-comments'),'comment','Comments')
+    const commentTotal = node('span')
+    comments.append(commentTotal)
     const format = new Intl.NumberFormat(undefined,{notation:'compact'})
     function update() {
       views.textContent = '▷ '+format.format(item.views ?? 0)
       likes.textContent = '♡ '+format.format(item.likes ?? 0)
-      tile.setAttribute('aria-label',`Play ${item.title}, ${item.views ?? 0} views, ${item.likes ?? 0} likes`)
+      commentTotal.textContent = format.format(item.commentCount ?? 0)
+      tile.setAttribute('aria-label',`Play ${item.title}, ${item.views ?? 0} views, ${item.likes ?? 0} likes, ${commentLabel(item.commentCount ?? 0)}`)
     }
     counts.setAttribute('aria-hidden','true')
-    counts.append(views,likes)
+    counts.append(views,likes,comments)
     const caption = node('span','','tile-caption')
     caption.append(title,counts)
     tile.append(image,caption)
@@ -419,7 +597,7 @@ function gallery() {
       },data => {
         Object.assign(item,data)
         update()
-      })
+      },update)
       reel.append(post)
       reel.showModal()
       post.querySelector('video').play().catch(() => {})
@@ -498,41 +676,11 @@ async function performance(slug) {
       video,detailLinks(slug),share(slug))
     const feedback = node('p','','status')
     const {button:heart} = likeButton(base,feedback,data)
-    const comments = node('div')
-    const form = node('form','','section-break')
+    const {form,comments} = commentThread(base,data.comments)
     form.id = 'comments'
-    form.innerHTML = `<h2>Comments</h2><label class="field">Name<input name="name" maxlength="50" required></label>
-      <label class="field">Comment<textarea name="text" rows="3" maxlength="400" required></textarea></label>
-      <label class="trap" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
-      <div class="actions"><button>Post comment</button></div><p class="status" role="status"></p>`
-    const showComment = item => {
-      const comment = node('article','','comment')
-      comment.append(node('strong',item.author),node('p',item.body))
-      if (item.mine) {
-        const remove = node('button','Remove')
-        remove.onclick = async () => {
-          try { await api(base+'/comments/'+item.id,{method:'DELETE'}); comment.remove() }
-          catch (error) { feedback.textContent = error.message }
-        }
-        comment.append(remove)
-      }
-      comments.prepend(comment)
-    }
-    data.comments.forEach(showComment)
-    form.onsubmit = async event => {
-      event.preventDefault()
-      const status = form.querySelector('.status')
-      const submit = form.querySelector('button')
-      submit.disabled = true
-      try {
-        const item = await api(base+'/comments',{ method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(form))) })
-        showComment(item)
-        form.reset()
-        status.textContent = ''
-      } catch (error) { status.textContent = error.message }
-      finally { submit.disabled = false }
-    }
-    detail.append(heart,feedback,form,comments)
+    detail.append(heart,feedback,node('h2','Comments'))
+
+    detail.append(form,comments)
     if (location.hash === '#comments') form.scrollIntoView()
   } catch (error) {
     detail.append(node('h2','Performance unavailable'),node('p',error.message),link('← Gallery','/gallery'))
@@ -542,13 +690,33 @@ async function performance(slug) {
 const slug = location.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/)?.[1]
 const page = slug ? 'performance' : ({ '/gallery':'gallery','/upload':'upload' })[location.pathname.replace(/\/$/,'')] ?? 'studio'
 document.body.dataset.page = page
-$(page).hidden = false
+let pageDolphin
+if (page !== 'studio') {
+  mountPageSky()
+  pageDolphin = mountPageDolphin()
+}
+if (page !== 'studio') $(page).hidden = false
 document.querySelector(`[data-page="${slug ? 'gallery' : page}"]`)?.setAttribute('aria-current','page')
 if (page === 'studio') {
-  import('./studio.js').then(module => module.studio(showReview)).catch(error => {
-    $('status').textContent = 'Studio unavailable'
+  const mobile = matchMedia('(pointer: coarse) and (hover: none)').matches ||
+    /iPhone|iPad|Android.*Mobile/i.test(navigator.userAgent)
+  const headset = mobile ? navigator.xr?.isSessionSupported('immersive-vr').catch(() => false) : false
+  Promise.resolve(headset).then(immersive => {
+    if (mobile && !immersive) {
+      $('studio').hidden = true
+      $('desktop-only').hidden = false
+      mountPageSky()
+      mountPageDolphin()
+      return
+    }
+    $('studio').hidden = false
+    return import('./studio.js').then(module => {
+      const startPractice = module.studio(showReview)
+      connectOnboarding(startPractice)
+    })
+  }).catch(error => {
     $('start').hidden = true
-    $('hint').textContent = 'The Studio needs a browser with WebGL enabled.'
+    $('status').textContent = 'The Studio needs WebGL.'
     console.error(error)
   })
 }
